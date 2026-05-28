@@ -1,15 +1,68 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Menu, X } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
+import { useWalletStore } from '@/store/walletStore';
 import ProfileDropdown from './ProfileDropdown';
+import WalletDropdown from './WalletDropdown';
+import { WalletConnectModal } from './donations/WalletConnectModal';
 import { ThemeToggle } from './ThemeToggle';
 
 export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const { isAuthenticated } = useAuthStore();
+  const { address: walletAddress, connect: connectWallet } = useWalletStore();
+
+  // Periodically fetch balance when wallet is connected
+  useEffect(() => {
+    if (walletAddress) {
+      const fetchBalance = async () => {
+        try {
+          const res = await fetch(`https://horizon-testnet.stellar.org/accounts/${walletAddress}`);
+          if (res.ok) {
+            const data = await res.json();
+            const native = data.balances.find((b: any) => b.asset_type === 'native');
+            useWalletStore.setState({ balance: native ? native.balance : '0.0000000' });
+          }
+        } catch (err) {
+          console.error('Error fetching balance:', err);
+        }
+      };
+
+      fetchBalance();
+      const interval = setInterval(fetchBalance, 15000);
+      return () => clearInterval(interval);
+    }
+  }, [walletAddress]);
+
+  const handleWalletConnect = async (walletType: string) => {
+    try {
+      if (walletType === 'freighter' && typeof window !== 'undefined' && (window as any).stellar) {
+        const stellar = (window as any).stellar;
+        const { address } = await stellar.getCurrentAddress();
+        if (address) {
+          connectWallet(walletType, address);
+          setIsWalletModalOpen(false);
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('Extension connection failed, falling back to mock key', e);
+    }
+    
+    // Fallback to demo key
+    const demoAddresses: Record<string, string> = {
+      freighter: 'GC2BJMDO7XZ6ST5GD7X3GH25SZ2RR35CY6SZ6SZ6SZ6SZ6SZ6SZ6SZ6',
+      albedo: 'GBLSTR7XZ6ST5GD7X3GH25SZ2RR35CY6SZ6SZ6SZ6SZ6SZ6SZ6SZ6SZ6',
+      lobstr: 'GDLOBSTRXZ6ST5GD7X3GH25SZ2RR35CY6SZ6SZ6SZ6SZ6SZ6SZ6SZ6SZ',
+    };
+    const address = demoAddresses[walletType] || 'GDEMO7XZ6ST5GD7X3GH25SZ2RR35CY6SZ6SZ6SZ6SZ6SZ6SZ6SZ6SZ6';
+    connectWallet(walletType, address);
+    setIsWalletModalOpen(false);
+  };
 
   return (
     <header className="w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -40,7 +93,22 @@ export default function Header() {
                 My Bookmarks
               </Link>
             )}
+            
+            {/* Wallet Integration */}
+            {walletAddress ? (
+              <WalletDropdown />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsWalletModalOpen(true)}
+                className="inline-flex items-center justify-center text-xs font-semibold text-foreground bg-muted hover:bg-muted/80 rounded-lg px-3 py-1.5 border border-border transition-colors cursor-pointer"
+              >
+                Connect Wallet
+              </button>
+            )}
+
             <ThemeToggle />
+
             {isAuthenticated ? (
               <ProfileDropdown />
             ) : (
@@ -93,10 +161,30 @@ export default function Header() {
               My Bookmarks
             </Link>
           )}
+
+          {/* Mobile Wallet Integration */}
+          <div className="py-2 border-b border-border mb-2 flex justify-center">
+            {walletAddress ? (
+              <WalletDropdown />
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileOpen(false);
+                  setIsWalletModalOpen(true);
+                }}
+                className="w-full inline-flex items-center justify-center text-sm font-semibold text-foreground bg-muted hover:bg-muted/80 rounded-lg px-4 py-2 border border-border transition-colors cursor-pointer"
+              >
+                Connect Wallet
+              </button>
+            )}
+          </div>
+
           <div className="flex items-center justify-between py-2">
             <span className="text-sm font-medium text-muted-foreground">Theme</span>
             <ThemeToggle />
           </div>
+
           {isAuthenticated ? (
             <div className="flex justify-center">
               <ProfileDropdown />
@@ -121,6 +209,13 @@ export default function Header() {
           )}
         </div>
       )}
+
+      {/* Wallet Connection Modal */}
+      <WalletConnectModal
+        isOpen={isWalletModalOpen}
+        onClose={() => setIsWalletModalOpen(false)}
+        onWalletConnect={handleWalletConnect}
+      />
     </header>
   );
 }

@@ -3,6 +3,25 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { devtools } from 'zustand/middleware';
 import type { AuthStore } from '@/types';
 
+const setAuthCookie = (token: string) => {
+  if (typeof window === 'undefined') return;
+  const sessionOnly = sessionStorage.getItem('stellaraid-session-only') === 'true';
+  const days = sessionOnly ? undefined : 30;
+  
+  let expires = "";
+  if (days) {
+    const date = new Date();
+    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+    expires = "; expires=" + date.toUTCString();
+  }
+  document.cookie = "token=" + encodeURIComponent(token) + expires + "; path=/; SameSite=Lax; Secure";
+};
+
+const deleteAuthCookie = () => {
+  if (typeof window === 'undefined') return;
+  document.cookie = "token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax; Secure";
+};
+
 export const useAuthStore = create<AuthStore>()(
   devtools(
     persist(
@@ -15,34 +34,40 @@ export const useAuthStore = create<AuthStore>()(
         isLoading: false,
 
         // Actions
-        login: (user, token, refreshToken) =>
+        login: (user, token, refreshToken) => {
           set({
             user,
             token,
             refreshToken: refreshToken || null,
             isAuthenticated: true,
             isLoading: false,
-          }),
+          });
+          setAuthCookie(token);
+        },
 
-        logout: () =>
+        logout: () => {
           set({
             user: null,
             token: null,
             refreshToken: null,
             isAuthenticated: false,
             isLoading: false,
-          }),
+          });
+          deleteAuthCookie();
+        },
 
         setUser: (user) => set({ user }),
 
         setLoading: (loading) => set({ isLoading: loading }),
 
-        setTokens: (token, refreshToken) =>
+        setTokens: (token, refreshToken) => {
           set({
             token,
             refreshToken,
             isAuthenticated: true,
-          }),
+          });
+          setAuthCookie(token);
+        },
       }),
       {
         name: 'auth-storage',
@@ -54,6 +79,11 @@ export const useAuthStore = create<AuthStore>()(
           refreshToken: state.refreshToken,
           isAuthenticated: state.isAuthenticated,
         }),
+        onRehydrateStorage: () => (state) => {
+          if (state?.token) {
+            setAuthCookie(state.token);
+          }
+        },
       }
     ),
     {
