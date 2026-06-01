@@ -3,7 +3,6 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { FaFacebookF, FaLinkedinIn, FaWhatsapp, FaXTwitter } from 'react-icons/fa6';
 import {
   BadgeCheck,
@@ -12,24 +11,30 @@ import {
   Copy,
   ExternalLink,
   Heart,
-  Mail,
-  MapPin,
   Share2,
-  ShieldCheck,
   Sparkles,
-  UserRound,
   Zap,
 } from 'lucide-react';
 import { clsx } from 'clsx';
+import { motion } from 'framer-motion';
+
 import { DonationModal } from '@/components/donations/DonationModal';
 import type { DonationReceipt } from '@/components/donations/TransactionSuccessModal';
 import { FundingProgress } from '@/components/projects/FundingProgress';
 import { ImageGallery, type GalleryImage } from '@/components/projects/ImageGallery';
 import type { Project, Update } from '@/types/api';
 
+// Tabs
+import { StoryTab } from './tabs/StoryTab';
+import { UpdatesTab } from './tabs/UpdatesTab';
+import { MilestonesTab } from './tabs/MilestonesTab';
+import { DonorsTab } from './tabs/DonorsTab';
+
 interface ProjectDetailsClientProps {
   project: Project;
 }
+
+type TabKey = 'story' | 'updates' | 'milestones' | 'donors';
 
 function toNumber(value: string | number | undefined) {
   const numeric = Number(value || 0);
@@ -85,19 +90,12 @@ function getUpdates(project: Project, images: GalleryImage[]): Update[] {
   ];
 }
 
-function formatDate(value: string) {
-  return new Date(value).toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-
 export function ProjectDetailsClient({ project }: ProjectDetailsClientProps) {
   const [projectState, setProjectState] = useState(project);
   const [isDonationOpen, setIsDonationOpen] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
   const [copied, setCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabKey>('story');
 
   const images = useMemo(() => getProjectImages(projectState), [projectState]);
   const updates = useMemo(() => getUpdates(projectState, images), [projectState, images]);
@@ -105,7 +103,6 @@ export function ProjectDetailsClient({ project }: ProjectDetailsClientProps) {
   const targetAmount = toNumber(projectState.targetAmount);
   const donorCount = getDonorCount(projectState);
   const daysRemaining = getDaysRemaining(projectState);
-  const creator = projectState.creator;
 
   useEffect(() => {
     setShareUrl(window.location.href);
@@ -147,6 +144,13 @@ export function ProjectDetailsClient({ project }: ProjectDetailsClientProps) {
     whatsapp: `https://wa.me/?text=${encodedText}%20${encodedUrl}`,
     linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
   };
+
+  const tabs: { id: TabKey; label: string; count?: number }[] = [
+    { id: 'story', label: 'Story & Creator' },
+    { id: 'updates', label: 'Updates', count: updates.length },
+    { id: 'milestones', label: 'Milestones', count: projectState.milestones?.length || 0 },
+    { id: 'donors', label: 'Donors', count: projectState.donorsList?.length || 0 },
+  ];
 
   return (
     <div className="min-h-screen bg-[#f0f4fa]">
@@ -223,101 +227,55 @@ export function ProjectDetailsClient({ project }: ProjectDetailsClientProps) {
               {copied && <p className="mt-3 text-sm font-semibold text-success-700">Project link copied.</p>}
             </section>
 
-            <section className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
-              <h2 className="text-2xl font-bold text-neutral-900">Campaign Story</h2>
-              <div className="mt-4 space-y-4 text-sm leading-7 text-neutral-700 md:text-base">
-                <p>{projectState.story || projectState.description}</p>
-                {projectState.impact && <p>{projectState.impact}</p>}
-              </div>
-            </section>
-
-            <section className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <h2 className="text-2xl font-bold text-neutral-900">Updates</h2>
-                <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-bold text-neutral-600">
-                  {updates.length} update{updates.length === 1 ? '' : 's'}
-                </span>
-              </div>
-              <div className="mt-6 space-y-5">
-                {updates.map((update) => (
-                  <article key={update.id} className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <h3 className="text-lg font-semibold text-neutral-900">{update.title}</h3>
-                      <span className="text-sm font-medium text-neutral-500">{formatDate(update.createdAt)}</span>
-                    </div>
-                    <p className="mt-3 text-sm leading-6 text-neutral-700">{update.content}</p>
-                    {update.imageUrls?.length ? (
-                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                        {update.imageUrls.slice(0, 2).map((url) => (
-                          <Image
-                            key={url}
-                            src={url}
-                            alt={update.title}
-                            width={400}
-                            height={176}
-                            className="h-44 w-full rounded-lg border border-neutral-200 object-cover"
-                            loading="lazy"
-                          />
-                        ))}
-                      </div>
-                    ) : null}
-                  </article>
-                ))}
-              </div>
-            </section>
-
-            <section className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
-              <h2 className="text-2xl font-bold text-neutral-900">Creator</h2>
-              <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-start">
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-50 text-primary-600">
-                  {creator?.avatar ? (
-                    <Image
-                      src={creator.avatar}
-                      alt={creator.name || 'Project creator'}
-                      width={64}
-                      height={64}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <UserRound className="h-8 w-8" />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-lg font-bold text-neutral-900">{creator?.name || 'StellarAid Creator'}</h3>
-                    {(creator?.verified || projectState.isVerified) && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-success-50 px-2.5 py-1 text-xs font-bold text-success-700">
-                        <ShieldCheck className="h-3.5 w-3.5" />
-                        Verified creator
+            {/* Tabs Navigation */}
+            <nav className="flex items-center gap-2 border-b border-neutral-200 pb-px overflow-x-auto">
+              {tabs.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={clsx(
+                      "relative flex items-center gap-2 whitespace-nowrap px-4 py-3 text-sm font-bold transition-colors",
+                      isActive ? "text-primary-700" : "text-neutral-500 hover:text-neutral-700"
+                    )}
+                  >
+                    {tab.label}
+                    {tab.count !== undefined && (
+                      <span className={clsx(
+                        "inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold",
+                        isActive ? "bg-primary-100 text-primary-700" : "bg-neutral-100 text-neutral-600"
+                      )}>
+                        {tab.count}
                       </span>
                     )}
-                  </div>
-                  <p className="mt-2 text-sm leading-6 text-neutral-600">
-                    {creator?.bio || 'This creator has submitted project documentation for StellarAid review.'}
-                  </p>
-                  <div className="mt-4 flex flex-wrap gap-3 text-sm text-neutral-500">
-                    {creator?.location || projectState.location ? (
-                      <span className="inline-flex items-center gap-2">
-                        <MapPin className="h-4 w-4" />
-                        {creator?.location || projectState.location}
-                      </span>
-                    ) : null}
-                    {creator?.email ? (
-                      <a href={`mailto:${creator.email}`} className="inline-flex items-center gap-2 text-primary-600 hover:text-primary-700">
-                        <Mail className="h-4 w-4" />
-                        Contact creator
-                      </a>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-            </section>
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeTabIndicator"
+                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600"
+                        initial={false}
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+
+            {/* Tab Content */}
+            <div className="min-h-[400px]">
+              {activeTab === 'story' && <StoryTab project={projectState} />}
+              {activeTab === 'updates' && <UpdatesTab updates={updates} />}
+              {activeTab === 'milestones' && <MilestonesTab project={projectState} />}
+              {activeTab === 'donors' && <DonorsTab project={projectState} />}
+            </div>
           </div>
 
+          {/* Sidebar */}
           <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
             <FundingProgress
               currentAmount={currentAmount}
               targetAmount={targetAmount}
+              currency={projectState.currency}
               donorCount={donorCount}
               daysRemaining={daysRemaining}
             />
@@ -403,4 +361,3 @@ export function ProjectDetailsClient({ project }: ProjectDetailsClientProps) {
 }
 
 export default ProjectDetailsClient;
-

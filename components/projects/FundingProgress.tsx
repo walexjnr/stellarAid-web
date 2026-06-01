@@ -7,6 +7,7 @@ import { clsx } from 'clsx';
 interface FundingProgressProps {
   currentAmount: number | string;
   targetAmount: number | string;
+  currency?: string;
   donorCount?: number;
   daysRemaining?: number;
   className?: string;
@@ -19,12 +20,17 @@ function toNumber(value: number | string | undefined) {
   return Number.isFinite(numeric) ? numeric : 0;
 }
 
-function formatMoney(value: number) {
-  return value.toLocaleString(undefined, {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  });
+function formatMoney(value: number, currencyCode: string = 'USD') {
+  try {
+    return value.toLocaleString(undefined, {
+      style: 'currency',
+      currency: currencyCode,
+      maximumFractionDigits: 0,
+    });
+  } catch (e) {
+    // Fallback for non-standard or crypto currencies (e.g. XLM)
+    return `${value.toLocaleString(undefined, { maximumFractionDigits: 0 })} ${currencyCode}`;
+  }
 }
 
 function getFundingStage(percentage: number) {
@@ -75,6 +81,7 @@ function getFundingStage(percentage: number) {
 export function FundingProgress({
   currentAmount,
   targetAmount,
+  currency = 'USD',
   donorCount = 0,
   daysRemaining,
   className,
@@ -116,8 +123,8 @@ export function FundingProgress({
         <div>
           <p className="text-sm font-semibold text-neutral-500">Funding Progress</p>
           <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <span className="text-3xl font-extrabold text-neutral-900">{formatMoney(current)}</span>
-            <span className="text-sm font-medium text-neutral-500">raised of {formatMoney(target)}</span>
+            <span className="text-3xl font-extrabold text-neutral-900">{formatMoney(current, currency)}</span>
+            <span className="text-sm font-medium text-neutral-500">raised of {formatMoney(target, currency)}</span>
           </div>
         </div>
         <span className={clsx('rounded-full px-3 py-1 text-xs font-bold uppercase', stage.badge)}>
@@ -186,7 +193,7 @@ export function FundingProgress({
             <TrendingUp className="h-4 w-4 text-accent-500" />
           )}
           <p className="mt-2 text-lg font-extrabold text-neutral-900">
-            {formatMoney(Math.max(target - current, 0))}
+            {formatMoney(Math.max(target - current, 0), currency)}
           </p>
           <p className="text-xs font-medium text-neutral-500">Remaining</p>
         </div>

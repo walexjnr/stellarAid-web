@@ -57,12 +57,34 @@ export interface ProjectCreator {
     verified?: boolean;
 }
 
+export interface Milestone {
+  id: string;
+  title: string;
+  description: string;
+  targetAmount: string;
+  status: 'Locked' | 'Unlocked' | 'Released';
+  txHash?: string;
+  dueDate?: string;
+}
+
+export interface DonorLeaderboardEntry {
+  id: string;
+  donorId?: string;
+  donorName?: string;
+  walletAddress: string;
+  amount: string;
+  asset: string;
+  isAnonymous: boolean;
+  timestamp: string;
+}
+
 export interface Project {
     id: string;
     title: string;
     description: string;
     targetAmount: string;
     currentAmount: string;
+    currency?: string;
     creatorId: string;
     imageUrl?: string;
     imageUrls?: string[];
@@ -80,6 +102,8 @@ export interface Project {
     story?: string;
     creator?: ProjectCreator;
     updates?: Update[];
+    milestones?: Milestone[];
+    donorsList?: DonorLeaderboardEntry[];
     createdAt: string;
     updatedAt: string;
 }
