@@ -177,10 +177,9 @@ export default function CreatorDashboard() {
 
                 <div className="space-y-3">
                   {activeCampaigns.map((campaign) => (
-                    <Link
+                    <div
                       key={campaign.id}
-                      href={`/campaigns/${campaign.id}`}
-                      className="block p-4 rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-sm transition"
+                      className="rounded-lg border border-gray-200 bg-white p-4 hover:border-blue-300 hover:shadow-sm transition"
                       onMouseEnter={() => setActiveCampaignId(campaign.id)}
                     >
                       <div className="flex items-center justify-between mb-2">
@@ -191,7 +190,21 @@ export default function CreatorDashboard() {
                         <div className="absolute inset-y-0 left-0 bg-blue-500" style={{ width: `${campaign.progress}%` }} />
                       </div>
                       <p className="text-xs text-gray-500 mt-1">${campaign.raised.toLocaleString()} raised of ${campaign.goal.toLocaleString()}</p>
-                    </Link>
+                      <div className="mt-3 flex items-center gap-2">
+                        <Link
+                          href={`/campaigns/${campaign.id}`}
+                          className="text-xs font-semibold text-slate-600 hover:text-slate-900"
+                        >
+                          View campaign
+                        </Link>
+                        <Link
+                          href={`/dashboard/campaigns/${campaign.id}/analytics`}
+                          className="text-xs font-semibold text-sky-700 hover:text-sky-900"
+                        >
+                          View analytics
+                        </Link>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </Card>
