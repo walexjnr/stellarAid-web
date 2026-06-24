@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Eye, Edit3, Trash2, TrendingUp, Users, Calendar } from 'lucide-react';
+import { Plus, Eye, Edit3, Trash2, TrendingUp, Users, Calendar, XCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function CreatorCampaignsManagement() {
@@ -27,6 +27,21 @@ export default function CreatorCampaignsManagement() {
       progress: 21.3,
     },
   ]);
+
+  const [campaignToEnd, setCampaignToEnd] = useState<number | null>(null);
+
+  const handleEndCampaign = async () => {
+    if (campaignToEnd !== null) {
+      // Simulate wallet signature
+      console.log("Requesting wallet signature to close contract...");
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setCampaigns(campaigns.map(c => 
+        c.id === campaignToEnd ? { ...c, status: 'Closed' } : c
+      ));
+      setCampaignToEnd(null);
+    }
+  };
 
   const totalRaised = campaigns.reduce((sum, c) => sum + c.raised, 0);
 
@@ -92,7 +107,8 @@ export default function CreatorCampaignsManagement() {
                   <td className="p-6 font-medium max-w-xs">{campaign.title}</td>
                   <td className="p-6">
                     <span className={`px-4 py-1.5 rounded-full text-sm font-medium
-                      ${campaign.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                      ${campaign.status === 'Active' ? 'bg-green-100 text-green-700' : 
+                        campaign.status === 'Closed' ? 'bg-gray-100 text-gray-700' : 'bg-yellow-100 text-yellow-700'}`}>
                       {campaign.status}
                     </span>
                   </td>
@@ -119,9 +135,15 @@ export default function CreatorCampaignsManagement() {
                       <button className="p-2 hover:bg-neutral-100 rounded-xl" title="Edit">
                         <Edit3 size={18} />
                       </button>
-                      <button className="p-2 hover:bg-red-50 text-red-600 rounded-xl" title="Delete">
-                        <Trash2 size={18} />
-                      </button>
+                      {campaign.status === 'Active' && (
+                        <button 
+                          className="p-2 hover:bg-red-50 text-red-600 rounded-xl" 
+                          title="End Campaign"
+                          onClick={() => setCampaignToEnd(campaign.id)}
+                        >
+                          <XCircle size={18} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -130,6 +152,32 @@ export default function CreatorCampaignsManagement() {
           </table>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      {campaignToEnd !== null && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full">
+            <h3 className="text-2xl font-bold mb-4">End Campaign Early?</h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to end this campaign? <strong>Warning:</strong> remaining donors will not be able to donate after it is closed. This action requires a wallet signature to close the contract.
+            </p>
+            <div className="flex justify-end gap-4">
+              <button 
+                className="px-6 py-2 rounded-xl text-gray-600 hover:bg-gray-100 font-medium"
+                onClick={() => setCampaignToEnd(null)}
+              >
+                Cancel
+              </button>
+              <button 
+                className="px-6 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-medium"
+                onClick={handleEndCampaign}
+              >
+                Sign & End
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
