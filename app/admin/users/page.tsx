@@ -7,6 +7,7 @@ type User = {
   name: string;
   email: string;
   role: string;
+  walletAddress?: string;
   kycStatus: "PENDING" | "APPROVED" | "REJECTED";
   createdAt: string;
   isSuspended?: boolean;
@@ -52,7 +53,8 @@ export default function UsersPage() {
       temp = temp.filter(
         (u) =>
           u.name.toLowerCase().includes(search.toLowerCase()) ||
-          u.email.toLowerCase().includes(search.toLowerCase())
+          u.email.toLowerCase().includes(search.toLowerCase()) ||
+          (u.walletAddress?.toLowerCase().includes(search.toLowerCase()) ?? false)
       );
     }
 
@@ -159,7 +161,7 @@ export default function UsersPage() {
       {/* 🔍 Search & Filters */}
       <div className="flex flex-wrap gap-3 mb-6">
         <input
-          placeholder="Search users..."
+          placeholder="Search by name, email or wallet address..."
           className="border p-2 rounded w-full md:w-1/3"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -195,6 +197,7 @@ export default function UsersPage() {
             <tr>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Wallet</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">KYC</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
@@ -207,6 +210,15 @@ export default function UsersPage() {
               <tr key={user.id} className="hover:bg-gray-50">
                 <td className="px-4 py-4 whitespace-nowrap">{user.name}</td>
                 <td className="px-4 py-4 whitespace-nowrap">{user.email}</td>
+                <td className="px-4 py-4 whitespace-nowrap">
+                  {user.walletAddress ? (
+                    <span className="font-mono text-xs text-gray-600" title={user.walletAddress}>
+                      {user.walletAddress.slice(0, 8)}…{user.walletAddress.slice(-6)}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400 text-xs">—</span>
+                  )}
+                </td>
 
                 {/* Role */}
                 <td className="px-4 py-4 whitespace-nowrap">
@@ -322,6 +334,7 @@ export default function UsersPage() {
             <div className="space-y-3">
               <p><b>Name:</b> {selectedUser.name}</p>
               <p><b>Email:</b> {selectedUser.email}</p>
+              <p><b>Wallet:</b> {selectedUser.walletAddress || '—'}</p>
               <p><b>Role:</b> {selectedUser.role}</p>
               <p><b>KYC Status:</b> {selectedUser.kycStatus}</p>
               <p><b>Suspended:</b> {selectedUser.isSuspended ? 'Yes' : 'No'}</p>
