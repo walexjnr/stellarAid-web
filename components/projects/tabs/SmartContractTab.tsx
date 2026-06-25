@@ -1,6 +1,7 @@
 import React from 'react';
 import { Clock, Code2, ExternalLink, ListChecks } from 'lucide-react';
 import type { Project, ProjectContract, ContractABISummaryItem, ContractTransaction } from '@/types/api';
+import { ContractExplorer } from '@/components/projects/ContractExplorer';
 
 interface SmartContractTabProps {
   project: Project;
@@ -123,6 +124,17 @@ export function SmartContractTab({ project }: SmartContractTabProps) {
           </div>
         )}
       </div>
+
+      {contract && (
+        <ContractExplorer
+          contractId={contract.contractId}
+          network={contract.network === 'public' ? 'public' : 'testnet'}
+          functions={contract.abiSummary?.map((item) => ({
+            name: item.title,
+            description: item.description || item.condition || '',
+          }))}
+        />
+      )}
 
       <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
         <div className="flex items-center gap-3">
